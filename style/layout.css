@@ -1,0 +1,15 @@
+html, body {
+  height: 100%;
+}
+
+main#editor {
+  margin-right: 20rem;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+}
+
+#content {
+  display: none;
+}

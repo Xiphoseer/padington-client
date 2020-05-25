@@ -1,0 +1,62 @@
+.ProseMirror-menubar-wrapper {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+
+  flex: 1 0 auto;
+}
+
+.ProseMirror {
+  h1, h2, h3, h4, h5, h6 {
+    margin-top: 0;
+  }
+}
+
+.ProseMirror p + p {
+  margin-top: 1rem;
+}
+
+.ProseMirror {
+  flex: 1 0 auto;
+  padding: 1rem;
+  overflow-y: auto;
+}
+
+.ProseMirror p {
+  flex: 1 0 auto;
+  margin-top: 0;
+}
+
+.ProseMirror li > p {
+  margin-bottom: 0;
+}
+
+.ProseMirror-menuitem {
+  padding: 0.3rem;
+}
+
+.ProseMirror blockquote {
+  margin-top: 0;
+}
+
+.ProseMirror blockquote > p {
+  margin-bottom: 0;
+}
+
+.ProseMirror blockquote::before {
+  content: "\201D";
+  font-size: 200%;
+  color: gray;
+  float: left;
+  padding: 0 0.5rem 0 0;
+}
+
+.ProseMirror blockquote {
+  padding: 0.5rem;
+  border-left: 5px solid rgb(0,0,100);
+  background-color: rgba(0,0,255,0.1);
+}
+
+.ProseMirror pre {
+  background-color: #eee;
+}
