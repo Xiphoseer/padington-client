@@ -16,19 +16,21 @@ body {
   margin: 0.5rem;
 }
 
-#chat-messages p strong {
+#chat-messages p {
+  &.msg-control, &.msg-system {
+    font-size: 80%;
+    font-style: italic;
+  }
 
-}
+  &.msg-system {
+    color: red;
+  }
 
-#chat-messages p.msg-control {
-  font-size: 80%;
-  font-style: italic;
-}
-
-#chat-messages p:not(.msg-control) {
-  background-color: #fff;
-  border-radius: 0.5rem;
-  padding: 0.5rem;
+  &:not(.msg-control):not(.msg-system) {
+    background-color: #fff;
+    border-radius: 0.5rem;
+    padding: 0.5rem;
+  }
 }
 
 #message-form {

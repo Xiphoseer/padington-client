@@ -5,7 +5,7 @@ import "prosemirror-view/style/prosemirror.css";
 import "prosemirror-menu/style/menu.css";
 import "prosemirror-example-setup/style/style.css";
 import "../style/layout.css";
-import "../style/chat.css";
+import "../style/chat.scss";
 import "../style/editor.scss";
 
 import {EditorState} from "prosemirror-state"

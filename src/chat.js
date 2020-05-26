@@ -63,13 +63,41 @@ export default function setup() {
     addControlMessage(id, " left the channel!");
   }
 
+  function addSystemMessage(text) {
+    var newPar = document.createElement("p");
+    newPar.classList.add("msg-system");
+    var newContent = document.createTextNode(text);
+    newPar.appendChild(newContent);
+
+    addMessage(newPar)
+  }
+
   const protocol = is_secure ? 'wss:' : 'ws:';
   const apiLocation = `${protocol}//${hostname}:9002/${padname}`;
   console.log("Connection to pad server at", apiLocation);
   var exampleSocket = new WebSocket(apiLocation, "paddington");
 
   exampleSocket.onopen = function (event) {
+    exampleSocket.onerror = function(event) {
+      console.error("WebSocket error observed:", event);
+      addSystemMessage("WebSocket error observed");
+    }
     exampleSocket.send("init");
+  };
+
+  exampleSocket.onerror = function(event) {
+    const msg = `Could not connect to server at ${apiLocation}`;
+    console.error("WebSocket failed before connection was established:", event);
+    addSystemMessage(msg);
+  };
+
+  exampleSocket.onclose = function(event) {
+    console.error("WebSocket was closed:", event);
+    if (event.wasClean) {
+      addSystemMessage(`Connection closed with reason '${event.reason}'`);
+    } else {
+      addSystemMessage("Connection broke");
+    }
   };
 
   exampleSocket.onmessage = function (event) {
