@@ -13,51 +13,16 @@ import {Schema, DOMParser} from "prosemirror-model"
 import {schema} from "prosemirror-markdown";
 import {exampleSetup} from "prosemirror-example-setup"
 
-const docJSON = {
-  "type": "doc",
-  "content": [
-    {
-      "type": "heading",
-      "attrs": { "level":1 },
-      "content": [
-        {"type":"text","text":"Padington"}
-      ]
-    },
-    {
-      "type": "code_block",
-      "attrs": { "params": "" },
-      "content": [
-        {
-          "type": "text",
-          "text": "fn foo(a: u32) -> u32 {\n  2 * a\n}"
-        }
-      ]
-    },
-    {
-      "type": "blockquote",
-      "content": [
-        {
-          "type": "paragraph",
-          "content": [
-            {
-              "type": "text",
-              "text": "Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore et dolore magna aliquyam erat, sed diam voluptua. At vero eos et accusam et justo duo dolores et ea rebum. Stet clita kasd gubergren, no sea takimata sanctus est Lorem ipsum dolor sit amet. Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore et dolore magna aliquyam erat, sed diam voluptua. At vero eos et accusam et justo duo dolores et ea rebum. Stet clita kasd gubergren, no sea takimata sanctus est Lorem ipsum dolor sit amet. Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore et dolore magna aliquyam erat, sed diam voluptua. At vero eos et accusam et justo duo dolores et ea rebum. Stet clita kasd gubergren, no sea takimata sanctus est Lorem ipsum dolor sit amet."
-            }
-          ]
-        }
-      ]
-    }
-  ]
-};
-
 const editorNode = document.querySelector("#editor");
-editorNode.innerHTML = "";
 
-window.view = new EditorView(editorNode, {
-  state: EditorState.create({
-    doc: schema.nodeFromJSON(docJSON),
-    plugins: exampleSetup({schema: schema})
+var eventBus = setupChat();
+eventBus.oninit = function(event) {
+  editorNode.innerHTML = "";
+  console.log("Initializing editor", event.doc);
+  window.view = new EditorView(editorNode, {
+    state: EditorState.create({
+      doc: schema.nodeFromJSON(event.doc),
+      plugins: exampleSetup({schema: schema})
+    })
   })
-})
-
-setupChat();
+}

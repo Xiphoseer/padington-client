@@ -100,6 +100,8 @@ export default function setupChat() {
     }
   };
 
+  var eventBus = {};
+
   exampleSocket.onmessage = function (event) {
     const {cmd, arg} = splitArg(event.data);
     switch (cmd) {
@@ -115,8 +117,12 @@ export default function setupChat() {
       case 'user-left':
         addUserLeft(arg);
         break;
+      case 'init':
+        const data = JSON.parse(arg);
+        eventBus.oninit(data);
+        break;
       default:
-        console.warn(`Unknown command ${cmd}`);
+        console.warn(`Unknown command ${cmd}`, arg);
     }
   }
 
@@ -125,4 +131,6 @@ export default function setupChat() {
     messageInput.value = "";
     event.preventDefault();
   }
+
+  return eventBus;
 }
