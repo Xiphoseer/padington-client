@@ -1,4 +1,4 @@
-export default function setup() {
+export default function setupChat() {
   let url = new URL(window.location);
   let pad_param = url.searchParams.get('pad');
   const padname = pad_param ? pad_param : "";

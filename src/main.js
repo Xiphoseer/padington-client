@@ -1,5 +1,4 @@
-//import update from './update.js';
-import setup from './chat.js';
+import setupChat from './chat.js';
 
 import "prosemirror-view/style/prosemirror.css";
 import "prosemirror-menu/style/menu.css";
@@ -11,29 +10,54 @@ import "../style/editor.scss";
 import {EditorState} from "prosemirror-state"
 import {EditorView} from "prosemirror-view"
 import {Schema, DOMParser} from "prosemirror-model"
-/*import {schema} from "prosemirror-schema-basic"
-import {addListNodes} from "prosemirror-schema-list"*/
 import {schema} from "prosemirror-markdown";
 import {exampleSetup} from "prosemirror-example-setup"
 
-// Mix the nodes from prosemirror-schema-list into the basic schema to
-// create a schema with list support.
-/*const mySchema = new Schema({
-  nodes: addListNodes(schema.spec.nodes, "paragraph block*", "block"),
-  marks: schema.spec.marks
-})*/
+const docJSON = {
+  "type": "doc",
+  "content": [
+    {
+      "type": "heading",
+      "attrs": { "level":1 },
+      "content": [
+        {"type":"text","text":"Padington"}
+      ]
+    },
+    {
+      "type": "code_block",
+      "attrs": { "params": "" },
+      "content": [
+        {
+          "type": "text",
+          "text": "fn foo(a: u32) -> u32 {\n  2 * a\n}"
+        }
+      ]
+    },
+    {
+      "type": "blockquote",
+      "content": [
+        {
+          "type": "paragraph",
+          "content": [
+            {
+              "type": "text",
+              "text": "Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore et dolore magna aliquyam erat, sed diam voluptua. At vero eos et accusam et justo duo dolores et ea rebum. Stet clita kasd gubergren, no sea takimata sanctus est Lorem ipsum dolor sit amet. Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore et dolore magna aliquyam erat, sed diam voluptua. At vero eos et accusam et justo duo dolores et ea rebum. Stet clita kasd gubergren, no sea takimata sanctus est Lorem ipsum dolor sit amet. Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore et dolore magna aliquyam erat, sed diam voluptua. At vero eos et accusam et justo duo dolores et ea rebum. Stet clita kasd gubergren, no sea takimata sanctus est Lorem ipsum dolor sit amet."
+            }
+          ]
+        }
+      ]
+    }
+  ]
+};
 
-window.view = new EditorView(document.querySelector("#editor"), {
+const editorNode = document.querySelector("#editor");
+editorNode.innerHTML = "";
+
+window.view = new EditorView(editorNode, {
   state: EditorState.create({
-    doc: DOMParser.fromSchema(schema).parse(document.querySelector("#content")),
+    doc: schema.nodeFromJSON(docJSON),
     plugins: exampleSetup({schema: schema})
   })
 })
 
-// even though Rollup is bundling all your files together, errors and
-// logs will still point to your original source modules
-console.log('if you have sourcemaps enabled in your devtools, click on main.js:5 -->');
-
-setup();
-
-//update();
+setupChat();
