@@ -21,7 +21,8 @@
     "prosemirror-schema-basic": "^1.0.0",
     "prosemirror-schema-list": "^1.0.0",
     "prosemirror-markdown": "^1.0.0",
-    "prosemirror-example-setup": "^1.0.0"
+    "prosemirror-example-setup": "^1.0.0",
+    "prosemirror-collab": "^1.0.0"
   },
   "scripts": {
     "build": "rollup -c",

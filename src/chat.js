@@ -18,7 +18,7 @@ export default function setupChat() {
       cmd = text.slice(0, cmd_len);
       arg = text.slice(cmd_len + 1);
     }
-    return {cmd, arg};
+    return [cmd, arg];
   }
 
   function addMessage(par) {
@@ -27,7 +27,7 @@ export default function setupChat() {
   }
 
   function addChatMessage (text) {
-    const {cmd, arg} = splitArg(text);
+    const [cmd, arg] = splitArg(text);
 
     var newName = document.createElement("strong");
     var newNameContent = document.createTextNode(`Bear ${cmd}: `);
@@ -100,10 +100,20 @@ export default function setupChat() {
     }
   };
 
-  var eventBus = {};
+  var eventBus = {
+    sendSteps: function(version, steps, clientID) {
+      const stepJSON = steps.map(x => x.toJSON());
+      console.log("Sending steps", {
+        version: version,
+        steps: stepJSON,
+        clientID: clientID,
+      });
+      exampleSocket.send(`steps|${version}|${JSON.stringify(stepJSON)}`);
+    }
+  };
 
   exampleSocket.onmessage = function (event) {
-    const {cmd, arg} = splitArg(event.data);
+    const [cmd, arg] = splitArg(event.data);
     switch (cmd) {
       case 'chat':
         addChatMessage(arg);
@@ -118,8 +128,18 @@ export default function setupChat() {
         addUserLeft(arg);
         break;
       case 'init':
-        const data = JSON.parse(arg);
+        const [clientID, msg] = splitArg(arg);
+        let data = JSON.parse(msg);
+        data.clientID = Number(clientID);
         eventBus.oninit(data);
+        break;
+      case 'steps':
+        const batches = JSON.parse(arg);
+        let event = {
+          steps: batches.flatMap(x => x.steps),
+          clientIDs: batches.flatMap(x => x.steps.map(y => x.src)),
+        };
+        eventBus.onnewsteps(event);
         break;
       default:
         console.warn(`Unknown command ${cmd}`, arg);
