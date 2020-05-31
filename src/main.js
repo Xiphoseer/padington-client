@@ -3,6 +3,8 @@ import setupChat from './chat.js';
 import "prosemirror-view/style/prosemirror.css";
 import "prosemirror-menu/style/menu.css";
 import "prosemirror-example-setup/style/style.css";
+import "@fortawesome/fontawesome-free/scss/solid.scss";
+import "@fortawesome/fontawesome-free/scss/fontawesome.scss";
 import "../style/layout.css";
 import "../style/chat.scss";
 import "../style/editor.scss";
@@ -22,7 +24,7 @@ eventBus.oninit = function(event) {
   editorNode.innerHTML = "";
   console.log("Initializing editor", event.doc);
 
-  let plugins = exampleSetup({schema: schema});
+  let plugins = exampleSetup({schema: schema, floatingMenu: false});
   // TODO: event.version ???
   plugins.push(collab({version: 0, clientID: event.clientID}));
 

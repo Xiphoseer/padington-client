@@ -1,3 +1,5 @@
+const LOCAL_STORAGE_KEY_CLIENT_NAME = "padington-client-name";
+
 export default function setupChat() {
   let url = new URL(window.location);
   let pad_param = url.searchParams.get('pad');
@@ -5,9 +7,38 @@ export default function setupChat() {
   const is_secure = url.protocol == "https:";
   const hostname = url.hostname;
 
+  var localStorage = window.localStorage;
+
+  var chatAside = document.getElementById("chat");
+  var editor = document.getElementById("editor");
+  var chatClose = document.getElementById("chat-close-button");
+  var chatOpen = document.getElementById("chat-open-button");
   var chatMessagesDiv = document.getElementById("chat-messages");
   var messageInput = document.getElementById("new-message");
   var messageForm = document.getElementById("message-form");
+  var peerList = document.getElementById("peers");
+  var peerListToggle = document.getElementById("peer-list-toggle");
+  var clientNameInput = document.getElementById("client-name");
+  var clientID = -1;
+  var clientName = null;
+
+  var peers = new Map();
+
+  peerListToggle.onclick = function(event) {
+    peerList.classList.toggle('closed');
+  }
+
+  chatClose.onclick = function(event) {
+    chatAside.classList.add('closed');
+    chatOpen.classList.remove('hidden');
+    editor.classList.remove('chat-open');
+  }
+
+  chatOpen.onclick = function(event) {
+    chatAside.classList.remove('closed');
+    chatOpen.classList.add('hidden');
+    editor.classList.add('chat-open');
+  }
 
   function splitArg (text) {
     var cmd_len = text.indexOf('|');
@@ -26,24 +57,45 @@ export default function setupChat() {
     chatMessagesDiv.scrollBy(0, 500);
   }
 
+  function addPeerListEntry(id, data) {
+    var newName = document.createElement("strong");
+    var newNameContent = document.createTextNode(data.name);
+    newName.appendChild(newNameContent);
+
+    var newListItem = document.createElement("li");
+    newListItem.id = `peer-${id}`;
+    newListItem.appendChild(newName);
+
+    peerList.appendChild(newListItem);
+  }
+
   function addChatMessage (text) {
-    const [cmd, arg] = splitArg(text);
+    const [remoteClientIDString, message] = splitArg(text);
+    let remoteClientID = Number(remoteClientIDString);
+
+    let entry = peers.get(remoteClientID);
+    let name = entry.name;
 
     var newName = document.createElement("strong");
-    var newNameContent = document.createTextNode(`Bear ${cmd}: `);
+    newName.dataset.src = remoteClientID;
+    var newNameContent = document.createTextNode(name);
     newName.appendChild(newNameContent);
 
     var newPar = document.createElement("p");
     newPar.appendChild(newName);
-    var newContent = document.createTextNode(arg);
+    var newContent = document.createTextNode(" " + message);
     newPar.appendChild(newContent);
 
     addMessage(newPar)
   }
 
-  function addControlMessage(id, text) {
+  function addControlMessage(remoteClientID, text) {
+    let entry = peers.get(remoteClientID);
+    let name = entry.name;
+
     var newName = document.createElement("strong");
-    var newNameContent = document.createTextNode(`Bear ${id}`);
+    newName.dataset.src = remoteClientID;
+    var newNameContent = document.createTextNode(name);
     newName.appendChild(newNameContent);
 
     var newPar = document.createElement("p");
@@ -55,12 +107,55 @@ export default function setupChat() {
     addMessage(newPar)
   }
 
-  function addNewUser(id) {
-    addControlMessage(id, " joined the channel!");
+  function renameUser(arg) {
+    let [id, newName] = splitArg(arg);
+    let remoteID = Number(id);
+
+    peers.get(remoteID).name = newName;
+
+    if (remoteID != clientID) {
+      console.log("Rename", remoteID, "->", newName);
+      let peerEntry = peerList.querySelector(`#peer-${remoteID} > strong`);
+      if (peerEntry) {
+        peerEntry.textContent = newName;
+      }
+    } else {
+      if (clientNameInput.value != newName) {
+        console.warn("Received remote name change to", newName, "!");
+        clientNameInput.value = newName;
+      }
+    }
+
+    let nameElements = chatMessagesDiv.querySelectorAll(`[data-src='${remoteID}']`);
+    nameElements.forEach(function(nameElement) {
+      nameElement.textContent = newName;
+    });
   }
 
-  function addUserLeft(id) {
-    addControlMessage(id, " left the channel!");
+  function addNewUser(arg) {
+    let [id, data] = splitArg(arg);
+    let remoteID = Number(id);
+
+    let peerData = JSON.parse(data);
+
+    peers.set(remoteID, peerData);
+
+    addControlMessage(remoteID, " joined the channel!");
+    if (remoteID != clientID) {
+      addPeerListEntry(remoteID, peerData);
+    }
+  }
+
+  function userLeft(id) {
+    let remoteID = Number(id);
+    addControlMessage(remoteID, " left the channel!");
+    peers.delete(remoteID);
+    if (remoteID != clientID) {
+      let peerEntry = peerList.querySelector(`#peer-${remoteID}`);
+      if (peerEntry) {
+        peerEntry.remove();
+      }
+    }
   }
 
   function addSystemMessage(text) {
@@ -74,7 +169,7 @@ export default function setupChat() {
 
   const protocol = is_secure ? 'wss:' : 'ws:';
   const apiLocation = `${protocol}//${hostname}:9002/${padname}`;
-  console.log("Connection to pad server at", apiLocation);
+  console.debug("Connection to pad server at", apiLocation);
   var exampleSocket = new WebSocket(apiLocation, "paddington");
 
   exampleSocket.onopen = function (event) {
@@ -82,7 +177,13 @@ export default function setupChat() {
       console.error("WebSocket error observed:", event);
       addSystemMessage("WebSocket error observed");
     }
-    exampleSocket.send("init");
+    let intendedName = localStorage.getItem(LOCAL_STORAGE_KEY_CLIENT_NAME);
+    if (intendedName) {
+      console.info(`Using name from local storage: %c${intendedName}`, "font-weight: bold");
+      exampleSocket.send(`init|${intendedName}`);
+    } else {
+      exampleSocket.send("init");
+    }
   };
 
   exampleSocket.onerror = function(event) {
@@ -124,14 +225,31 @@ export default function setupChat() {
       case 'new-user':
         addNewUser(arg);
         break;
+      case 'rename':
+        renameUser(arg);
+        break;
       case 'user-left':
-        addUserLeft(arg);
+        userLeft(arg);
         break;
       case 'init':
-        const [clientID, msg] = splitArg(arg);
+        const [setClientID, msg] = splitArg(arg);
         let data = JSON.parse(msg);
-        data.clientID = Number(clientID);
+        clientID = Number(setClientID);
+        data.clientID = clientID;
         eventBus.oninit(data);
+        break;
+      case 'peers':
+        const initialPeers = JSON.parse(arg);
+        for (let [id, data] of Object.entries(initialPeers)) {
+          let remoteID = Number(id);
+          peers.set(remoteID, data);
+          if (remoteID != clientID) {
+            addPeerListEntry(remoteID, data);
+          } else {
+            clientNameInput.value = data.name;
+            clientName = data.name;
+          }
+        }
         break;
       case 'steps':
         const batches = JSON.parse(arg);
@@ -142,7 +260,7 @@ export default function setupChat() {
         eventBus.onnewsteps(event);
         break;
       default:
-        console.warn(`Unknown command ${cmd}`, arg);
+        console.warn(`Unknown command %c${cmd}`, "font-weight: bold", "with argument(s):", arg);
     }
   }
 
@@ -151,6 +269,20 @@ export default function setupChat() {
     messageInput.value = "";
     event.preventDefault();
   }
+
+  clientNameInput.onkeydown = function(e) {
+    if (e.code == 'Enter') {
+      event.target.blur();
+    }
+  }
+  clientNameInput.onblur = function (event) {
+    let name = clientNameInput.value;
+    if (name != clientName) {
+      clientName = name;
+      localStorage.setItem(LOCAL_STORAGE_KEY_CLIENT_NAME, name);
+      exampleSocket.send(`rename|${name}`);
+    }
+  };
 
   return eventBus;
 }

@@ -4,6 +4,7 @@ import json from '@rollup/plugin-json';
 import { terser } from 'rollup-plugin-terser';
 import builtins from 'rollup-plugin-node-builtins';
 import scss from 'rollup-plugin-scss';
+import copy from 'rollup-plugin-copy';
 
 // `npm run build` -> `production` is true
 // `npm run dev` -> `production` is false
@@ -24,6 +25,12 @@ export default {
 		production && terser(), // minify, but only in production
 		scss(),
 		json(),
-		builtins()
+		builtins(),
+		copy({
+  		targets: [{
+				src: 'node_modules/@fortawesome/fontawesome-free/webfonts/fa-solid-*',
+				dest: 'public/webfonts'
+			}]
+		})
 	]
 };

@@ -8,17 +8,26 @@
 	<link rel="stylesheet" type="text/css" href="bundle.css">
 </head>
 <body>
-	<main id="editor">
+	<main id="editor" class="">
 		Loading editor ...
 	</main>
-	<aside id="chat">
-		<h2>Chat</h2>
+	<aside id="chat" class="closed">
+		<h2>
+			Chat
+			<span class="flex-space"></span>
+			<button id="peer-list-toggle"><i class="fas fa-users"></i></button>
+			<button id="chat-close-button"><i class="fas fa-times"></i></button>
+		</h2>
+		<ul id="peers" class="closed">
+			<li><input id="client-name"></input></li>
+		</ul>
 		<div id="chat-messages"></div>
 		<form id="message-form">
 			<input type="text" id="new-message">
-			<button type="submit">Send</button>
+			<button type="submit" title="Send"><i class="fas fa-paper-plane"></i></button>
 		</form>
 	</aside>
+	<button id="chat-open-button" class="" type="submit" title="Open Chat"><i class="fas fa-comments"></i></button>
 
 	<script src='bundle.js'></script>
 </body>
