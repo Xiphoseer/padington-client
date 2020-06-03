@@ -51,12 +51,14 @@ body {
 #peers {
   margin: 0;
   padding: 0;
-  overflow-y: hidden;
-	max-height: 200px;
+  overflow-y: auto;
+  flex: 1 1 auto;
+  min-height: clamp(0, min-content, 30%);
+  max-height: max-content;
 
   list-style-type: none;
 
-	transition-property: all;
+	transition-property: min-height, max-height;
 	transition-duration: .1s;
 	/*transition-timing-function: ease-out;*/
   border-bottom: 1px solid gray;
@@ -67,11 +69,15 @@ body {
 }
 
 #peers.closed {
+  flex-grow: 0;
+  flex-shrink: 1;
+  flex-basis: 0;
+  min-height: 0;
   max-height: 0;
 }
 
 #chat-messages {
-  flex-grow: 1;
+  flex: 20 1 auto;
   overflow-y: auto;
 }
 

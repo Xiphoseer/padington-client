@@ -170,7 +170,7 @@ export default function setupChat() {
   const protocol = is_secure ? 'wss:' : 'ws:';
   const apiLocation = `${protocol}//${hostname}:9002/${padname}`;
   console.debug("Connection to pad server at", apiLocation);
-  var exampleSocket = new WebSocket(apiLocation, "paddington");
+  var exampleSocket = new WebSocket(apiLocation, "padington");
 
   exampleSocket.onopen = function (event) {
     exampleSocket.onerror = function(event) {
@@ -195,9 +195,9 @@ export default function setupChat() {
   exampleSocket.onclose = function(event) {
     console.error("WebSocket was closed:", event);
     if (event.wasClean) {
-      addSystemMessage(`Connection closed with reason '${event.reason}'`);
+      addSystemMessage(`Connection closed with code ${event.code} and reason '${event.reason}'`);
     } else {
-      addSystemMessage("Connection broke");
+      addSystemMessage(`Connection broke with code ${event.code}`);
     }
   };
 
