@@ -25,8 +25,8 @@ eventBus.oninit = function(event) {
   console.log("Initializing editor", event.doc);
 
   let plugins = exampleSetup({schema: schema, floatingMenu: false});
-  // TODO: event.version ???
-  plugins.push(collab({version: 0, clientID: event.clientID}));
+  let version = event.version;
+  plugins.push(collab({version: version, clientID: event.clientID}));
 
   window.view = new EditorView(editorNode, {
     state: EditorState.create({
