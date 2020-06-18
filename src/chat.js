@@ -201,6 +201,44 @@ export default function setupChat() {
     }
   };
 
+  function showPadChooser() {
+    exampleSocket.onclose = function(event) {
+      console.log("Connection closed as expected!");
+    };
+
+    editor.textContent = "";
+    chatOpen.classList.add('hidden');
+
+    var padChooserTitle = document.createTextNode("Choose a Pad!");
+    var padChooserHeading = document.createElement("h2");
+    padChooserHeading.appendChild(padChooserTitle);
+
+    var padNameField = document.createElement("input");
+    padNameField.type = "text";
+    padNameField.name = "pad";
+    padNameField.pattern = "[^/]+"
+
+    var padOpenButtonText = document.createTextNode("Open")
+    var padOpenButton = document.createElement("button");
+    padOpenButton.type = "submit";
+    padOpenButton.appendChild(padOpenButtonText);
+
+    var padChooser = document.createElement("form");
+    padChooser.id = "pad-chooser";
+
+    padChooser.onsubmit = function(event) {
+      // prepend the current padname
+      padNameField.value = `${padname}${padNameField.value}`;
+    }
+
+    padChooser.appendChild(padChooserHeading);
+    //padChooser.appendChild(padPatternInfo);
+    padChooser.appendChild(padNameField);
+    padChooser.appendChild(padOpenButton);
+
+    editor.appendChild(padChooser);
+  }
+
   var eventBus = {
     sendSteps: function(version, steps, clientID) {
       const stepJSON = steps.map(x => x.toJSON());
@@ -221,6 +259,9 @@ export default function setupChat() {
         break;
       case 'error':
         console.error(arg);
+        break;
+      case 'folder':
+        showPadChooser();
         break;
       case 'new-user':
         addNewUser(arg);

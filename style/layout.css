@@ -9,6 +9,22 @@ html, body {
   overflow-y: auto;
 }
 
+#pad-chooser {
+  box-sizing: border-box;
+  width: 20rem;
+  padding: 1.5rem;
+  margin: 10rem auto;
+  background-color: white;
+  border-radius: 1rem;
+}
+
+#pad-chooser > * {
+  margin: 0.5rem 0;
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
+}
+
 @media (min-width: 700px) {
   #editor.chat-open {
     margin-right: 20rem;
