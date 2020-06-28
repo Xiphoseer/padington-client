@@ -19,14 +19,15 @@ import {collab, sendableSteps, receiveTransaction, getVersion} from "prosemirror
 
 const editorNode = document.querySelector("#editor");
 
-var eventBus = setupChat();
-eventBus.oninit = function(event) {
+var padington = setupChat();
+
+padington.oninit = function(event) {
   editorNode.innerHTML = "";
   console.log("Initializing editor", event.doc);
 
   let plugins = exampleSetup({schema: schema, floatingMenu: true});
   let version = event.version;
-  plugins.push(collab({version: version, clientID: event.clientID}));
+  plugins.push(collab({version: version, clientID: padington.id}));
 
   window.view = new EditorView(editorNode, {
     state: EditorState.create({
@@ -38,16 +39,15 @@ eventBus.oninit = function(event) {
       view.updateState(newState)
       let sendable = sendableSteps(newState)
       if (sendable) {
-        eventBus.sendSteps(sendable.version, sendable.steps, sendable.clientID)
+        padington.sendSteps(sendable.version, sendable.steps)
       }
     }
   })
 
-  eventBus.onnewsteps = function(newData) {
+  padington.onsteps = function(event) {
     let currentVersion = getVersion(view.state);
-    //let newData = authority.stepsSince()
-    let steps = newData.steps.map(step => Step.fromJSON(schema, step));
+    let steps = event.steps.map(step => Step.fromJSON(schema, step));
 
-    view.dispatch(receiveTransaction(view.state, steps, newData.clientIDs));
+    view.dispatch(receiveTransaction(view.state, steps, event.clientIDs));
   }
 }

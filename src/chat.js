@@ -1,4 +1,4 @@
-const LOCAL_STORAGE_KEY_CLIENT_NAME = "padington-client-name";
+import { PadingtonClient } from './protocol.js';
 
 export default function setupChat() {
   let url = new URL(window.location);
@@ -19,10 +19,6 @@ export default function setupChat() {
   var peerList = document.getElementById("peers");
   var peerListToggle = document.getElementById("peer-list-toggle");
   var clientNameInput = document.getElementById("client-name");
-  var clientID = -1;
-  var clientName = null;
-
-  var peers = new Map();
 
   peerListToggle.onclick = function(event) {
     peerList.classList.toggle('closed');
@@ -38,18 +34,6 @@ export default function setupChat() {
     chatAside.classList.remove('closed');
     chatOpen.classList.add('hidden');
     editor.classList.add('chat-open');
-  }
-
-  function splitArg (text) {
-    var cmd_len = text.indexOf('|');
-    var cmd, arg;
-    if (cmd_len < 0) {
-      cmd = text;
-    } else {
-      cmd = text.slice(0, cmd_len);
-      arg = text.slice(cmd_len + 1);
-    }
-    return [cmd, arg];
   }
 
   function addMessage(par) {
@@ -69,32 +53,24 @@ export default function setupChat() {
     peerList.appendChild(newListItem);
   }
 
-  function addChatMessage (text) {
-    const [remoteClientIDString, message] = splitArg(text);
-    let remoteClientID = Number(remoteClientIDString);
-
-    let entry = peers.get(remoteClientID);
-    let name = entry.name;
-
-    var newName = document.createElement("strong");
-    newName.dataset.src = remoteClientID;
-    var newNameContent = document.createTextNode(name);
-    newName.appendChild(newNameContent);
-
+  function addSystemMessage(text) {
     var newPar = document.createElement("p");
-    newPar.appendChild(newName);
-    var newContent = document.createTextNode(" " + message);
+    newPar.classList.add("msg-system");
+    var newContent = document.createTextNode(text);
     newPar.appendChild(newContent);
 
     addMessage(newPar)
   }
 
-  function addControlMessage(remoteClientID, text) {
-    let entry = peers.get(remoteClientID);
+  var client = new PadingtonClient(is_secure, hostname, padname);
+
+  /// Display a control message for a given ID
+  function addControlMessage(remoteID, text) {
+    let entry = client.peers.get(remoteID);
     let name = entry.name;
 
     var newName = document.createElement("strong");
-    newName.dataset.src = remoteClientID;
+    newName.dataset.src = remoteID;
     var newNameContent = document.createTextNode(name);
     newName.appendChild(newNameContent);
 
@@ -107,14 +83,50 @@ export default function setupChat() {
     addMessage(newPar)
   }
 
-  function renameUser(arg) {
-    let [id, newName] = splitArg(arg);
-    let remoteID = Number(id);
+  /// Display a chat message for the given id
+  function addChatMessage (event) {
+    let entry = peers.get(event.id);
+    let name = entry.name;
 
-    peers.get(remoteID).name = newName;
+    var newName = document.createElement("strong");
+    newName.dataset.src = event.id;
+    var newNameContent = document.createTextNode(name);
+    newName.appendChild(newNameContent);
 
-    if (remoteID != clientID) {
-      console.log("Rename", remoteID, "->", newName);
+    var newPar = document.createElement("p");
+    newPar.appendChild(newName);
+    var newContent = document.createTextNode(" " + event.message);
+    newPar.appendChild(newContent);
+
+    addMessage(newPar)
+  }
+
+  /// When a new user appears in the channel, send a chat control message
+  /// and add them to the peer list
+  function addNewUser(event) {
+    addControlMessage(event.id, " joined the channel!");
+    if (event.id != client.id) {
+      addPeerListEntry(event.id, event.data);
+    }
+  }
+
+  /// When a user leaves, print a message
+  function userLeft(event) {
+    addControlMessage(event.id, " left the channel!");
+    if (event.id != client.id) {
+      let peerEntry = peerList.querySelector(`#peer-${event.id}`);
+      if (peerEntry) {
+        peerEntry.remove();
+      }
+    }
+  }
+
+  /// When a user is renamed, update all names in the UI
+  function renameUser(event) {
+    let remoteID = event.id;
+    let newName = event.newName;
+    if (remoteID != client.id) {
+      console.log("Rename", event.id, "->", newName);
       let peerEntry = peerList.querySelector(`#peer-${remoteID} > strong`);
       if (peerEntry) {
         peerEntry.textContent = newName;
@@ -132,79 +144,14 @@ export default function setupChat() {
     });
   }
 
-  function addNewUser(arg) {
-    let [id, data] = splitArg(arg);
-    let remoteID = Number(id);
-
-    let peerData = JSON.parse(data);
-
-    peers.set(remoteID, peerData);
-
-    addControlMessage(remoteID, " joined the channel!");
-    if (remoteID != clientID) {
-      addPeerListEntry(remoteID, peerData);
-    }
+  /// When the client data is updated by the server, reset the name box
+  function updateClient(event) {
+    clientNameInput.value = event.name;
   }
 
-  function userLeft(id) {
-    let remoteID = Number(id);
-    addControlMessage(remoteID, " left the channel!");
-    peers.delete(remoteID);
-    if (remoteID != clientID) {
-      let peerEntry = peerList.querySelector(`#peer-${remoteID}`);
-      if (peerEntry) {
-        peerEntry.remove();
-      }
-    }
-  }
-
-  function addSystemMessage(text) {
-    var newPar = document.createElement("p");
-    newPar.classList.add("msg-system");
-    var newContent = document.createTextNode(text);
-    newPar.appendChild(newContent);
-
-    addMessage(newPar)
-  }
-
-  const protocol = is_secure ? 'wss:' : 'ws:';
-  const apiLocation = `${protocol}//${hostname}:9002/${padname}`;
-  console.debug("Connection to pad server at", apiLocation);
-  var exampleSocket = new WebSocket(apiLocation, "padington");
-
-  exampleSocket.onopen = function (event) {
-    exampleSocket.onerror = function(event) {
-      console.error("WebSocket error observed:", event);
-      addSystemMessage("WebSocket error observed");
-    }
-    let intendedName = localStorage.getItem(LOCAL_STORAGE_KEY_CLIENT_NAME);
-    if (intendedName) {
-      console.info(`Using name from local storage: %c${intendedName}`, "font-weight: bold");
-      exampleSocket.send(`init|${intendedName}`);
-    } else {
-      exampleSocket.send("init");
-    }
-  };
-
-  exampleSocket.onerror = function(event) {
-    const msg = `Could not connect to server at ${apiLocation}`;
-    console.error("WebSocket failed before connection was established:", event);
-    addSystemMessage(msg);
-  };
-
-  exampleSocket.onclose = function(event) {
-    console.error("WebSocket was closed:", event);
-    if (event.wasClean) {
-      addSystemMessage(`Connection closed with code ${event.code} and reason '${event.reason}'`);
-    } else {
-      addSystemMessage(`Connection broke with code ${event.code}`);
-    }
-  };
-
+  /// When the current path is not a pad but a folder, display a box
   function showPadChooser() {
-    exampleSocket.onclose = function(event) {
-      console.log("Connection closed as expected!");
-    };
+    client.expectClose();
 
     editor.textContent = "";
     chatOpen.classList.add('hidden');
@@ -239,74 +186,16 @@ export default function setupChat() {
     editor.appendChild(padChooser);
   }
 
-  var eventBus = {
-    sendSteps: function(version, steps, clientID) {
-      const stepJSON = steps.map(x => x.toJSON());
-      console.log("Sending steps", {
-        version: version,
-        steps: stepJSON,
-        clientID: clientID,
-      });
-      exampleSocket.send(`steps|${version}|${JSON.stringify(stepJSON)}`);
-    }
-  };
-
-  exampleSocket.onmessage = function (event) {
-    const [cmd, arg] = splitArg(event.data);
-    switch (cmd) {
-      case 'chat':
-        addChatMessage(arg);
-        break;
-      case 'error':
-        console.error(arg);
-        break;
-      case 'folder':
-        showPadChooser();
-        break;
-      case 'new-user':
-        addNewUser(arg);
-        break;
-      case 'rename':
-        renameUser(arg);
-        break;
-      case 'user-left':
-        userLeft(arg);
-        break;
-      case 'init':
-        const [setClientID, msg] = splitArg(arg);
-        let data = JSON.parse(msg);
-        clientID = Number(setClientID);
-        data.clientID = clientID;
-        eventBus.oninit(data);
-        break;
-      case 'peers':
-        const initialPeers = JSON.parse(arg);
-        for (let [id, data] of Object.entries(initialPeers)) {
-          let remoteID = Number(id);
-          peers.set(remoteID, data);
-          if (remoteID != clientID) {
-            addPeerListEntry(remoteID, data);
-          } else {
-            clientNameInput.value = data.name;
-            clientName = data.name;
-          }
-        }
-        break;
-      case 'steps':
-        const batches = JSON.parse(arg);
-        let event = {
-          steps: batches.flatMap(x => x.steps),
-          clientIDs: batches.flatMap(x => x.steps.map(y => x.src)),
-        };
-        eventBus.onnewsteps(event);
-        break;
-      default:
-        console.warn(`Unknown command %c${cmd}`, "font-weight: bold", "with argument(s):", arg);
-    }
-  }
+  client.onsysmessage = addSystemMessage;
+  client.onchat = addChatMessage;
+  client.onfolder = showPadChooser;
+  client.onenter = addNewUser;
+  client.onrename = renameUser;
+  client.onleave = userLeft;
+  client.onupdate = updateClient;
 
   messageForm.onsubmit = function(event) {
-    exampleSocket.send(`chat|${messageInput.value}`);
+    client.sendChatMessage(messageInput.value);
     messageInput.value = "";
     event.preventDefault();
   }
@@ -316,14 +205,13 @@ export default function setupChat() {
       event.target.blur();
     }
   }
+
   clientNameInput.onblur = function (event) {
     let name = clientNameInput.value;
-    if (name != clientName) {
-      clientName = name;
-      localStorage.setItem(LOCAL_STORAGE_KEY_CLIENT_NAME, name);
-      exampleSocket.send(`rename|${name}`);
+    if (name != client.name) {
+      client.rename(name);
     }
   };
 
-  return eventBus;
+  return client;
 }
