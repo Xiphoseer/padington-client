@@ -22,6 +22,13 @@
 			<li><input id="client-name"></input></li>
 		</ul>
 		<div id="chat-messages"></div>
+		<div id="audio-controls">
+			<button id="audio-connect-button" type="submit" title="Connect Audio">Connect Audio</button>
+			<button id="audio-mute-toggle" class="hidden" type="submit" title="Mute Audio">Mute Audio</button>
+			<span class="spacer"></span>
+			<button id="audio-disconnect-button" class="hidden" type="submit" title="Disconnect Audio">Disconnect Audio</button>
+			<audio id="audio-output"></audio>
+		</div>
 		<form id="message-form">
 			<input type="text" id="new-message">
 			<button type="submit" title="Send"><i class="fas fa-paper-plane"></i></button>

@@ -9,6 +9,10 @@ $fa-font-path: "webfonts";
   flex: 1 0 auto;
 }
 
+.hidden {
+  display: none;
+}
+
 body {
   margin: 0;
 }
@@ -21,7 +25,7 @@ body {
   position: fixed;
   bottom: 1rem;
   right: 1rem;
-  padding: 1rem;
+  padding: calc(0.9rem - 1px) 0.9rem;
   border-radius: 2rem;
   border: none;
   font-size: 16pt;
@@ -102,7 +106,7 @@ body {
   }
 }
 
-#message-form {
+#message-form, #audio-controls {
   padding: 0.5rem;
   display: flex;
   flex-direction: row;
@@ -110,13 +114,52 @@ body {
   box-sizing: border-box;
 }
 
-#message-form button {
-  flex: 0 1 6rem;
+#audio-controls button {
+  padding: 0.5rem;
+  flex: 1 0 0;
+}
+
+#audio-controls {
+  button.hidden + span.spacer {
+    display: none;
+  }
+}
+
+#audio-controls span.spacer {
+  flex: 0 0 0.5rem;
+}
+
+#audio-controls button#audio-disconnect-button {
+  background-color: red;
+
+  &:hover {
+    background-color: lighten(red, 10%);
+  }
+}
+
+#audio-controls button#audio-connect-button {
+  background-color: green;
+
+  &:hover {
+    background-color: lighten(green, 10%);
+  }
+}
+
+#message-form button,
+#audio-controls button {
   background-color: blue;
   color: white;
   border: initial;
   border-radius: 0.3rem;
   cursor: pointer;
+
+  &:hover {
+    background-color: lighten(blue, 10%);
+  }
+}
+
+#message-form button {
+  flex: 0 1 6rem;
 }
 
 #message-form input {

@@ -1,12 +1,4 @@
-import { PadingtonClient } from './protocol.js';
-
-export default function setupChat() {
-  let url = new URL(window.location);
-  let pad_param = url.searchParams.get('pad');
-  const padname = pad_param ? pad_param : "";
-  const is_secure = url.protocol == "https:";
-  const hostname = url.hostname;
-
+export default function setupChat(client, padname) {
   var localStorage = window.localStorage;
 
   var chatAside = document.getElementById("chat");
@@ -54,6 +46,7 @@ export default function setupChat() {
   }
 
   function addSystemMessage(text) {
+    console.warn(text);
     var newPar = document.createElement("p");
     newPar.classList.add("msg-system");
     var newContent = document.createTextNode(text);
@@ -62,11 +55,12 @@ export default function setupChat() {
     addMessage(newPar)
   }
 
-  var client = new PadingtonClient(is_secure, hostname, padname);
-
   /// Display a control message for a given ID
   function addControlMessage(remoteID, text) {
     let entry = client.peers.get(remoteID);
+    if (!entry) {
+      console.error(remoteID, client.peers);
+    }
     let name = entry.name;
 
     var newName = document.createElement("strong");
@@ -186,12 +180,12 @@ export default function setupChat() {
     editor.appendChild(padChooser);
   }
 
-  client.onsysmessage = addSystemMessage;
+  client.onsystem = addSystemMessage;
   client.onchat = addChatMessage;
   client.onfolder = showPadChooser;
-  client.onenter = addNewUser;
+  client.addEventListener('enter', addNewUser);
+  client.addEventListener('leave', userLeft);
   client.onrename = renameUser;
-  client.onleave = userLeft;
   client.onupdate = updateClient;
 
   messageForm.onsubmit = function(event) {
@@ -212,6 +206,4 @@ export default function setupChat() {
       client.rename(name);
     }
   };
-
-  return client;
 }

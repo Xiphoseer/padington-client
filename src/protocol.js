@@ -15,9 +15,13 @@ function splitArg (text) {
 /// Dispatches an event to the appropriate listener
 function dispatchEvent(client, type, event) {
   let handlers = client.eventHandlers[type];
-  handlers.forEach((handler, i) => {
-    handler(event);
-  });
+  if (handlers) {
+    handlers.forEach((handler, i) => {
+      handler(event);
+    });
+  } else {
+    console.error("[padington]", "Could not find event handlers for type", type);
+  }
 }
 
 export class PeerEnterEvent {
@@ -37,6 +41,20 @@ export class PeerRenameEvent {
   constructor(id, newName) {
     this.id = id;
     this.newName = newName;
+  }
+}
+
+export class PeerAudioEvent {
+  constructor(id, isEnabled) {
+    this.id = id;
+    this.isEnabled = isEnabled;
+  }
+}
+
+export class PeerWebRTCEvent {
+  constructor(id, message) {
+    this.id = id;
+    this.message = message;
   }
 }
 
@@ -65,12 +83,20 @@ function handleLeave(client, arg) {
 }
 
 /// Rename a remote peer
-function renamePeer(client, arg) {
-  let [id, newName] = splitArg(arg);
+function updatePeer(client, arg) {
+  let [id, payload] = splitArg(arg);
   let remoteID = Number(id);
 
-  client.peers.get(remoteID).name = newName;
-  dispatchEvent(client, 'rename', new PeerRenameEvent(remoteID, newName));
+  let data = JSON.parse(payload);
+  if (data.name) {
+    let newName = data.name;
+    client.peers.get(remoteID).name = newName;
+    dispatchEvent(client, 'rename', new PeerRenameEvent(remoteID, newName));
+  }
+
+  if (data.audio != null) {
+    dispatchEvent(client, 'audio', new PeerAudioEvent(remoteID, data.audio));
+  }
 }
 
 /// Handle the init message
@@ -79,6 +105,14 @@ function handleInit(client, arg) {
   let data = JSON.parse(msg);
   client.id = Number(clientID);
   dispatchEvent(client, 'init', data);
+}
+
+function handleWebRTC(client, arg) {
+  const [remoteIDString, msg] = splitArg(arg);
+  let data = JSON.parse(msg);
+  let remoteID = Number(remoteIDString);
+
+  dispatchEvent(client, 'webrtc', new PeerWebRTCEvent(remoteID, data));
 }
 
 function handlePeers(client, arg) {
@@ -137,9 +171,10 @@ function handleClose(event) {
 
 /// Handle an error before the connection was established
 function handleInitialError(event) {
-  const msg = `Could not connect to server at ${apiLocation}`;
+  const msg = `Could not connect to server at ${event.target.url}`;
   console.error("WebSocket failed before connection was established:", event);
   systemMessage(this, msg);
+  this.expectClose();
 }
 
 /// Handle a message
@@ -158,17 +193,20 @@ function handleMessage(event) {
     case 'new-user':
       addNewUser(this, arg);
       break;
-    case 'rename':
-      renamePeer(this, arg);
+    case 'update':
+      updatePeer(this, arg);
       break;
     case 'user-left':
-      dispatchEvent(this, 'leave', arg);
+      handleLeave(this, arg);
       break;
     case 'init':
       handleInit(this, arg);
       break;
     case 'peers':
       handlePeers(this, arg);
+      break;
+    case 'webrtc':
+      handleWebRTC(this, arg);
       break;
     case 'steps':
       const batches = JSON.parse(arg);
@@ -202,10 +240,12 @@ export class PadingtonClient {
       folder: [],
       enter: [],
       rename: [],
+      audio: [],
       leave: [],
       init: [],
       peers: [],
       steps: [],
+      webrtc: [],
     };
 
     this.socket.onopen = handleOpen.bind(this);
@@ -229,21 +269,33 @@ export class PadingtonClient {
     this.socket.send(`steps|${version}|${JSON.stringify(stepJSON)}`);
   }
 
+  /// Send some WebRTC signal to a specific other client
+  sendWebRTC(to, data) {
+    this.socket.send(`webrtc|${to}|${JSON.stringify(data)}`);
+  }
+
   /// Sets a new name for this client
   rename(newName) {
     this.name = newName;
     localStorage.setItem(LOCAL_STORAGE_KEY_CLIENT_NAME, newName);
-    this.socket.send(`rename|${newName}`);
+    const msg = {name: newName};
+    this.socket.send(`update|${JSON.stringify(msg)}`);
   }
 
   /// Send a chat message
   sendChatMessage(msg) {
-    this.send(`chat|${msg}`);
+    this.socket.send(`chat|${msg}`);
+  }
+
+  /// Set whether the audio connection is active
+  setAudio(on) {
+    const msg = {audio: !!on};
+    this.socket.send(`update|${JSON.stringify(msg)}`);
   }
 
   /// Update any of the event listeners
   addEventListener(type, listener) {
-    this.eventHandlers[type] += [listener];
+    this.eventHandlers[type].push(listener);
   }
 
   set onsystem(handler) { this.eventHandlers.system = [handler]; }
@@ -252,8 +304,10 @@ export class PadingtonClient {
   set onfolder(handler) { this.eventHandlers.folder = [handler]; }
   set onenter(handler) { this.eventHandlers.enter = [handler]; }
   set onrename(handler) { this.eventHandlers.rename = [handler]; }
+  set onaudio(handler) { this.eventHandlers.audio = [handler]; }
   set onleave(handler) { this.eventHandlers.leave = [handler]; }
   set oninit(handler) { this.eventHandlers.init = [handler]; }
   set onupdate(handler) { this.eventHandlers.update = [handler]; }
   set onsteps(handler) { this.eventHandlers.steps = [handler]; }
+  set onwebrtc(handler) { this.eventHandlers.webrtc = [handler]; }
 }
