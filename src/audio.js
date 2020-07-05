@@ -221,7 +221,11 @@ async function onEnable(state) {
 }
 
 async function onDisable(state) {
-
+  state.localStream = null;
+  for (let [id, connection] of state.connections) {
+    connection.close();
+  }
+  state.connections = new Map();
 }
 
 class AudioState {
@@ -262,7 +266,7 @@ export default function setupAudio(client) {
   var audioState = new AudioState(client, audioElement);
 
   audioConnectButton.onclick = function(event) {
-    audioState.setEnabled(true);
+    audioState.setEnabled(true).catch(e => console.trace(e));
 
     audioDisconnectButton.classList.remove('hidden');
     audioMuteToggle.classList.remove('hidden');
@@ -272,20 +276,27 @@ export default function setupAudio(client) {
   }
 
   audioMuteToggle.onclick = function(event) {
-    if (audioElement.paused) {
-      audioElement.play().then(x => console.log(x)).catch(e => console.error(e));
-      audioMuteToggle.title = "Mute Audio";
-      audioMuteToggle.textContent = "Mute Audio";
-    } else {
-      audioElement.pause();
-      audioMuteToggle.title = "Unmute Audio";
-      audioMuteToggle.textContent = "Unmute Audio";
-    }
+    audioState.localStream.then(localStream => {
+      let audioTrack = localStream.getAudioTracks()[0]
+      if (audioTrack) {
+        if (audioTrack.enabled) {
+          audioTrack.enabled = false;
+          audioMuteToggle.title = "Unmute Audio";
+          audioMuteToggle.textContent = "Unmute Audio";
+        } else {
+          audioTrack.enabled = true;
+          audioMuteToggle.title = "Mute Audio";
+          audioMuteToggle.textContent = "Mute Audio";
+        }
+      } else {
+        console.warn("Pressed mute toggle without audio stream");
+      }
+    });
   }
 
   audioDisconnectButton.onclick = function(event) {
     audioElement.srcObject = null;
-    audioState.setEnabled(false);
+    audioState.setEnabled(false).catch(e => console.trace(e));
 
     audioDisconnectButton.classList.add('hidden');
     audioMuteToggle.classList.add('hidden');
