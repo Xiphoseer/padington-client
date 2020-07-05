@@ -15,12 +15,16 @@
 		<h2>
 			Chat
 			<span class="flex-space"></span>
-			<button id="peer-list-toggle"><i class="fas fa-users"></i></button>
+			<button id="peer-panel-toggle"><i class="fas fa-users"></i></button>
 			<button id="chat-close-button"><i class="fas fa-times"></i></button>
 		</h2>
-		<ul id="peers" class="closed">
-			<li><input id="client-name"></input></li>
-		</ul>
+		<div id="peers" class="closed">
+			<div class="me">
+				<input id="client-name"></input>
+			</div>
+			<ul id="peer-list">
+			</ul>
+		</div>
 		<div id="chat-messages"></div>
 		<div id="audio-controls">
 			<button id="audio-connect-button" type="submit" title="Connect Audio">Connect Audio</button>
