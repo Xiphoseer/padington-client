@@ -22,4 +22,4 @@ var padington = new PadingtonClient(is_secure, hostname, padname);
 
 setupChat(padington, padname);
 setupEditor(padington);
-setupAudio(padington);
+window.audioState = setupAudio(padington);

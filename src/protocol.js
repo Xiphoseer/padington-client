@@ -86,15 +86,18 @@ function handleLeave(client, arg) {
 function updatePeer(client, arg) {
   let [id, payload] = splitArg(arg);
   let remoteID = Number(id);
+  let peerEntry = client.peers.get(remoteID);
 
   let data = JSON.parse(payload);
+
   if (data.name) {
     let newName = data.name;
-    client.peers.get(remoteID).name = newName;
+    peerEntry.name = newName;
     dispatchEvent(client, 'rename', new PeerRenameEvent(remoteID, newName));
   }
 
   if (data.audio != null) {
+    peerEntry.audio = data.audio;
     dispatchEvent(client, 'audio', new PeerAudioEvent(remoteID, data.audio));
   }
 }
@@ -104,6 +107,7 @@ function handleInit(client, arg) {
   const [clientID, msg] = splitArg(arg);
   let data = JSON.parse(msg);
   client.id = Number(clientID);
+  console.info("This is client", client.id);
   dispatchEvent(client, 'init', data);
 }
 
@@ -271,7 +275,12 @@ export class PadingtonClient {
 
   /// Send some WebRTC signal to a specific other client
   sendWebRTC(to, data) {
-    this.socket.send(`webrtc|${to}|${JSON.stringify(data)}`);
+    if (to == null || data == null) {
+      throw new RangeError("padington::sendWebRTC called with", to, data);
+    }
+    let msg = `webrtc|${to}|${JSON.stringify(data)}`;
+    // console.log(msg);
+    this.socket.send(msg);
   }
 
   /// Sets a new name for this client

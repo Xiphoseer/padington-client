@@ -1,3 +1,6 @@
+const LOCAL_STORAGE_KEY_CHAT_OPEN = "padington-chat-open";
+const LOCAL_STORAGE_KEY_PEERS_OPEN = "padington-peers-open";
+
 export default function setupChat(client, padname) {
   var localStorage = window.localStorage;
 
@@ -8,24 +11,46 @@ export default function setupChat(client, padname) {
   var chatMessagesDiv = document.getElementById("chat-messages");
   var messageInput = document.getElementById("new-message");
   var messageForm = document.getElementById("message-form");
-  var peerList = document.getElementById("peers");
-  var peerListToggle = document.getElementById("peer-list-toggle");
+  var peerPanel = document.getElementById("peers");
+  var peerList = document.getElementById("peer-list");
+  var peerPanelToggle = document.getElementById("peer-panel-toggle");
   var clientNameInput = document.getElementById("client-name");
 
-  peerListToggle.onclick = function(event) {
-    peerList.classList.toggle('closed');
+  peerPanelToggle.onclick = function(event) {
+    const isPeersClosed = peerPanel.classList.contains('closed');
+    if (isPeersClosed) {
+      peerPanel.classList.remove('closed');
+    } else {
+      peerPanel.classList.add('closed');
+    }
+    localStorage.setItem(LOCAL_STORAGE_KEY_PEERS_OPEN, !isPeersClosed);
+  }
+
+  if (localStorage.getItem(LOCAL_STORAGE_KEY_PEERS_OPEN)) {
+    peerPanel.classList.remove('closed');
   }
 
   chatClose.onclick = function(event) {
     chatAside.classList.add('closed');
     chatOpen.classList.remove('hidden');
     editor.classList.remove('chat-open');
+    localStorage.setItem(LOCAL_STORAGE_KEY_CHAT_OPEN, false);
   }
 
-  chatOpen.onclick = function(event) {
+  /// Opens the chat window
+  function openChat() {
     chatAside.classList.remove('closed');
     chatOpen.classList.add('hidden');
     editor.classList.add('chat-open');
+    localStorage.setItem(LOCAL_STORAGE_KEY_CHAT_OPEN, true);
+  }
+
+  /// Open the chat when the button is clicked
+  chatOpen.onclick = openChat;
+
+  /// Open the chat on startup
+  if (localStorage.getItem(LOCAL_STORAGE_KEY_CHAT_OPEN)) {
+    openChat();
   }
 
   function addMessage(par) {
@@ -34,12 +59,17 @@ export default function setupChat(client, padname) {
   }
 
   function addPeerListEntry(id, data) {
+    var newUserIcon = document.createElement("i");
+    newUserIcon.classList.add('fas');
+    newUserIcon.classList.add(data.audio ? 'fa-microphone' : 'fa-user');
+
     var newName = document.createElement("strong");
     var newNameContent = document.createTextNode(data.name);
     newName.appendChild(newNameContent);
 
     var newListItem = document.createElement("li");
     newListItem.id = `peer-${id}`;
+    newListItem.appendChild(newUserIcon);
     newListItem.appendChild(newName);
 
     peerList.appendChild(newListItem);
@@ -79,7 +109,7 @@ export default function setupChat(client, padname) {
 
   /// Display a chat message for the given id
   function addChatMessage (event) {
-    let entry = peers.get(event.id);
+    let entry = client.peers.get(event.id);
     let name = entry.name;
 
     var newName = document.createElement("strong");
@@ -138,6 +168,19 @@ export default function setupChat(client, padname) {
     });
   }
 
+  function setUserAudio(event) {
+    let remoteID = event.id;
+    if (remoteID != client.id) {
+      let peerIcon = peerList.querySelector(`#peer-${remoteID} > i`);
+      if (peerIcon) {
+        let keys = ["fa-user", "fa-microphone"];
+        let [a,b] = event.isEnabled ? [0,1] : [1,0];
+        peerIcon.classList.remove(keys[a]);
+        peerIcon.classList.add(keys[b]);
+      }
+    }
+  }
+
   /// When the client data is updated by the server, reset the name box
   function updateClient(event) {
     clientNameInput.value = event.name;
@@ -186,6 +229,7 @@ export default function setupChat(client, padname) {
   client.addEventListener('enter', addNewUser);
   client.addEventListener('leave', userLeft);
   client.onrename = renameUser;
+  client.addEventListener('audio', setUserAudio);
   client.onupdate = updateClient;
 
   messageForm.onsubmit = function(event) {

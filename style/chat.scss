@@ -1,8 +1,11 @@
 $fa-font-path: "webfonts";
 
+* {
+  box-sizing: border-box;
+}
+
 :root {
   font-family: sans-serif;
-  box-sizing: border-box;
 }
 
 .flex-space {
@@ -38,7 +41,7 @@ body {
   }
 }
 
-#chat-close-button, #peer-list-toggle {
+#chat-close-button, #peer-panel-toggle {
   cursor: pointer;
   padding: 0.3rem;
   border: none;
@@ -53,12 +56,33 @@ body {
 }
 
 #peers {
+  overflow: hidden;
+  min-height: min-content;
+  flex: 1 0 min-content;
+}
+
+#peers.closed {
+  flex-grow: 0;
+  flex-shrink: 1;
+  flex-basis: 0;
+  max-height: 0;
+}
+
+#peers .me {
+  padding: 0.2rem;
+}
+
+#peers .me input {
+  width: 100%;
+}
+
+#peer-list {
   margin: 0;
   padding: 0;
   overflow-y: auto;
   flex: 1 1 auto;
-  min-height: clamp(0, min-content, 30%);
-  max-height: max-content;
+  height: min-content;
+  max-height: 20vh;
 
   list-style-type: none;
 
@@ -68,20 +92,16 @@ body {
   border-bottom: 1px solid gray;
 }
 
-#peers li {
+#peer-list > li {
   padding: 0.5rem;
 }
 
-#peers.closed {
-  flex-grow: 0;
-  flex-shrink: 1;
-  flex-basis: 0;
-  min-height: 0;
-  max-height: 0;
+#peer-list > li > strong {
+  margin: 0 0.5rem;
 }
 
 #chat-messages {
-  flex: 20 1 auto;
+  flex: 20 1 100%;
   overflow-y: auto;
 }
 
