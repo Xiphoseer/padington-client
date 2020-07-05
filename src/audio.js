@@ -83,7 +83,7 @@ function logSDP(text) {
 
 function finishSetup(state, remoteID, peerConnection) {
   peerConnection.addEventListener('icecandidate', event => {
-    console.log("ICE Candidate Event", event);
+    console.log("ICE Candidate Event"/*, event*/);
     if (event.candidate) {
       state.client.sendWebRTC(remoteID, {
         iceCandidate: event.candidate,
@@ -155,26 +155,29 @@ async function handleOffer(state, remoteID, offer) {
   const peerConnection = new RTCPeerConnection(configuration);
 
   let localStream = await state.localStream;
+
+  peerConnection.setRemoteDescription(new RTCSessionDescription(offer));
+
   localStream.getTracks().forEach(track => {
     console.log("Adding track", track);
     peerConnection.addTrack(track, localStream);
   });
 
-  peerConnection.setRemoteDescription(new RTCSessionDescription(offer));
+  // Finish the setup before awaiting?
+  finishSetup(state, remoteID, peerConnection);
+
   const answer = await peerConnection.createAnswer();
   await peerConnection.setLocalDescription(answer);
 
   state.client.sendWebRTC(remoteID, answer);
   state.connections.set(remoteID, peerConnection);
-
-  finishSetup(state, remoteID, peerConnection);
 }
 
 async function handleICECandidate(state, remoteID, message) {
   let peerConnection = state.connections.get(remoteID);
   if (peerConnection) {
     try {
-      console.log("ICE Candidate Message", message.iceCandidate);
+      console.log("ICE Candidate Message"/*, message.iceCandidate*/);
       await peerConnection.addIceCandidate(message.iceCandidate);
     } catch (e) {
       console.error('Error adding received ice candidate', e);
