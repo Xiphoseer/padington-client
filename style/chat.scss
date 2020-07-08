@@ -58,14 +58,18 @@ body {
 #peers {
   overflow: hidden;
   min-height: min-content;
-  flex: 1 0 min-content;
+  flex-grow: 1;
+  flex-shrink: 0;
+  flex-basis: 0;
+  flex-basis: min-content;
 }
 
 #peers.closed {
-  flex-grow: 0;
+  /*flex-grow: 0;
   flex-shrink: 1;
   flex-basis: 0;
-  max-height: 0;
+  max-height: 0;*/
+  display: none;
 }
 
 #peers .me {

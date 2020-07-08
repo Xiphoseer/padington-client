@@ -4,26 +4,14 @@ const configuration = {
   ]
 }
 
-/*async function getUser() {
-    try {
-        const constraints = {'audio': true};
-        const stream = await navigator.mediaDevices.getUserMedia(constraints);
-        //audioElement.srcObject = stream;
-        return stream;
-    } catch(error) {
-        console.error('Error opening microphone.', error);
-    }
-}*/
-
 async function initConnection(state, remoteID) {
   // The user with the larger ID initializes the connection
   console.log("Send init message to client", remoteID);
   const peerConnection = new RTCPeerConnection(configuration);
 
-  let localStream = await state.localStream;
-  localStream.getTracks().forEach(track => {
+  state.localStream.getTracks().forEach(track => {
     console.log("Adding track", track);
-    peerConnection.addTrack(track, localStream);
+    peerConnection.addTrack(track, state.localStream);
   });
 
   const offer = await peerConnection.createOffer();
@@ -93,8 +81,14 @@ function finishSetup(state, remoteID, peerConnection) {
   });
 
   peerConnection.addEventListener('track', async (event) => {
-    console.log("Recieved Track", event.track, state.remoteStream);
-    state.remoteStream.addTrack(event.track, state.remoteStream);
+    console.log("Recieved Track", event.track);
+
+    var remoteStream = new MediaStream();
+    remoteStream.addTrack(event.track);
+
+    var audioNode = state.audioCtx.createMediaStreamSource(remoteStream);
+    audioNode.connect(state.audioCtx.destination);
+    state.remoteStreamAudioNodes.set(remoteID, audioNode);
   });
 
   // INFO: This event just doesn't exist in firefox :(
@@ -153,14 +147,11 @@ async function handleOffer(state, remoteID, offer) {
   console.groupEnd();
 
   const peerConnection = new RTCPeerConnection(configuration);
-
-  let localStream = await state.localStream;
-
   peerConnection.setRemoteDescription(new RTCSessionDescription(offer));
 
-  localStream.getTracks().forEach(track => {
+  state.localStream.getTracks().forEach(track => {
     console.log("Adding track", track);
-    peerConnection.addTrack(track, localStream);
+    peerConnection.addTrack(track, state.localStream);
   });
 
   // Finish the setup before awaiting?
@@ -205,39 +196,63 @@ function handleSignal(event) {
 }
 
 async function onEnable(state) {
-  if (!state.localStream) {
-    state.localStream = navigator.mediaDevices.getUserMedia({audio: true});
-  }
+  console.log("Creating audio context");
+  const audioContext = new AudioContext();
+  state.audioCtx = audioContext;
 
-  console.log("Checking for needed audio connections");
-  for (const [remoteID, data] of state.client.peers) {
-    console.log(remoteID, data)
-    if (remoteID < state.client.id && data.audio) {
-      initConnection(state, remoteID)
-    }
-  }
+  console.log("Loading user media");
+  navigator.mediaDevices.getUserMedia ({audio: true})
+    .then(micStream => {
+      state.localStream = micStream;
 
-  state.output.play().then(x => console.log(x)).catch(e => console.error(e));
+      //var oscillator = state.audioCtx.createOscillator();
+      //oscillator.type = 'sine';
+      //oscillator.frequency.setValueAtTime(220, state.audioCtx.currentTime); // value in hertz
+      //oscillator.connect(state.audioCtx.destination);
+      //oscillator.start();
+      //state.oscillator = oscillator;
+
+      console.log("Checking for needed audio connections");
+      for (const [remoteID, data] of state.client.peers) {
+        console.log("Found Peer", remoteID, data)
+        if (remoteID < state.client.id && data.audio) {
+          initConnection(state, remoteID)
+        }
+      }
+    })
+    .catch(e => {
+      console.dir(e);
+      console.error(e);
+    });
 }
 
 async function onDisable(state) {
+  console.log("Unsetting local stream");
   state.localStream = null;
+  console.log("Stopping all remote tracks");
+  for (const [key, value] of state.remoteStreamAudioNodes) {
+    console.log("Disconnected audio node for client", key);
+    value.disconnect();
+  }
+  console.log("Closing all connections");
   for (let [id, connection] of state.connections) {
     connection.close();
   }
+  console.log("Closed all connections");
   state.connections = new Map();
 }
 
+// for legacy browsers
+const AudioContext = window.AudioContext || window.webkitAudioContext;
+
 class AudioState {
-  constructor(client, audioElement) {
+  constructor(client) {
     this.isEnabled = false;
     this.client = client;
     this.connections = new Map();
-
     this.localStream = null;
-    this.remoteStream = new MediaStream();
-    audioElement.srcObject = this.remoteStream;
-    this.output = audioElement;
+
+    this.remoteStreamAudioNodes = new Map();
 
     client.addEventListener('audio', handleAudio.bind(this));
     client.addEventListener('enter', handleEnter.bind(this));
@@ -261,12 +276,12 @@ export default function setupAudio(client) {
   let audioConnectButton = document.getElementById("audio-connect-button");
   let audioDisconnectButton = document.getElementById("audio-disconnect-button");
   let audioMuteToggle = document.getElementById("audio-mute-toggle");
-  let audioElement = document.getElementById("audio-output");
 
-  var audioState = new AudioState(client, audioElement);
+  var audioState = new AudioState(client);
 
   audioConnectButton.onclick = function(event) {
-    audioState.setEnabled(true).catch(e => console.trace(e));
+    audioState.setEnabled(true)
+      .catch(e => console.trace(e));
 
     audioDisconnectButton.classList.remove('hidden');
     audioMuteToggle.classList.remove('hidden');
@@ -276,8 +291,8 @@ export default function setupAudio(client) {
   }
 
   audioMuteToggle.onclick = function(event) {
-    audioState.localStream.then(localStream => {
-      let audioTrack = localStream.getAudioTracks()[0]
+    if (audioState.localStream) {
+      let audioTrack = audioState.localStream.getAudioTracks()[0];
       if (audioTrack) {
         if (audioTrack.enabled) {
           audioTrack.enabled = false;
@@ -289,14 +304,16 @@ export default function setupAudio(client) {
           audioMuteToggle.textContent = "Mute Audio";
         }
       } else {
-        console.warn("Pressed mute toggle without audio stream");
+        console.warn("Pressed mute toggle without an audio track");
       }
-    });
+    } else {
+      console.warn("Pressed mute toggle without a local stream");
+    }
   }
 
   audioDisconnectButton.onclick = function(event) {
-    audioElement.srcObject = null;
-    audioState.setEnabled(false).catch(e => console.trace(e));
+    audioState.setEnabled(false)
+      .catch(e => console.trace(e));
 
     audioDisconnectButton.classList.add('hidden');
     audioMuteToggle.classList.add('hidden');
