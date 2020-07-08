@@ -13,16 +13,16 @@ $fa-font-path: "webfonts";
 }
 
 .hidden {
-  display: none;
+  display: none !important;
 }
 
 body {
   margin: 0;
 }
 
-#chat-open-button.hidden {
+/*#chat-open-button.hidden {
   display: none;
-}
+}*/
 
 #chat-open-button {
   position: fixed;
@@ -130,12 +130,31 @@ body {
   }
 }
 
-#message-form, #audio-controls {
-  padding: 0.5rem;
+#message-form {
   display: flex;
   flex-direction: row;
+}
+
+#audio-controls, #message-form {
   border-top: 1px solid gray;
-  box-sizing: border-box;
+  padding: 0.5rem;
+}
+
+.audio-slider input {
+  flex: 1 0 auto;
+  margin: 0 0.5rem;
+}
+
+.audio-slider span {
+  width: 2rem;
+  display: inline-block;
+  text-align: center;
+}
+
+#audio-controls div.audio-slider {
+  display: flex;
+  flex-direction: row;
+  padding-bottom: 0.5rem;
 }
 
 #audio-controls button {

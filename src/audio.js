@@ -201,9 +201,17 @@ async function onEnable(state) {
   state.audioCtx = audioContext;
 
   console.log("Loading user media");
-  navigator.mediaDevices.getUserMedia ({audio: true})
+  return navigator.mediaDevices.getUserMedia ({audio: true})
     .then(micStream => {
-      state.localStream = micStream;
+      state.micStream = micStream;
+      state.sendNode = state.audioCtx.createMediaStreamDestination();
+      state.micNode = state.audioCtx.createMediaStreamSource(state.micStream);
+      state.micGainNode = state.audioCtx.createGain();
+      state.micGainNode.gain.setValueAtTime(1, state.audioCtx.currentTime);
+
+      state.micNode.connect(state.micGainNode);
+      state.micGainNode.connect(state.sendNode);
+      state.localStream = state.sendNode.stream;
 
       //var oscillator = state.audioCtx.createOscillator();
       //oscillator.type = 'sine';
@@ -228,7 +236,17 @@ async function onEnable(state) {
 
 async function onDisable(state) {
   console.log("Unsetting local stream");
+  state.micNode.disconnect();
+  state.micGainNode.disconnect();
+  let audioTracks = state.micStream.getAudioTracks();
+  console.log("Audio Tracks", audioTracks);
+  audioTracks.forEach(track => {
+    console.log("Disabling track", track);
+    track.enabled = false;
+  });
+  state.micStream = null;
   state.localStream = null;
+
   console.log("Stopping all remote tracks");
   for (const [key, value] of state.remoteStreamAudioNodes) {
     console.log("Disconnected audio node for client", key);
@@ -259,6 +277,14 @@ class AudioState {
     client.addEventListener('webrtc', handleSignal.bind(this));
   }
 
+  setMicGain(value) {
+    if (this.micGainNode) {
+      this.micGainNode.gain.setValueAtTime(value, this.audioCtx.currentTime);
+    } else {
+      console.warn("Cannot set mic gain when audio isn't enabled!");
+    }
+  }
+
   setEnabled(flag) {
     let v = !!flag;
     this.isEnabled = v;
@@ -275,22 +301,35 @@ class AudioState {
 export default function setupAudio(client) {
   let audioConnectButton = document.getElementById("audio-connect-button");
   let audioDisconnectButton = document.getElementById("audio-disconnect-button");
-  let audioMuteToggle = document.getElementById("audio-mute-toggle");
+  //let audioMuteToggle = document.getElementById("audio-mute-toggle");
+
+  let micVolume = document.getElementById("mic-volume");
+  let micVolumeSlider = document.getElementById("mic-volume-slider");
+  let micVolumeValue = document.getElementById("mic-volume-value");
+
+  micVolumeSlider.value = 1;
 
   var audioState = new AudioState(client);
 
   audioConnectButton.onclick = function(event) {
     audioState.setEnabled(true)
-      .catch(e => console.trace(e));
+      .then(_ => {
+        audioDisconnectButton.classList.remove('hidden');
+        micVolume.classList.remove('hidden');
+        audioState.setMicGain(micVolumeSlider.value);
 
-    audioDisconnectButton.classList.remove('hidden');
-    audioMuteToggle.classList.remove('hidden');
-    audioMuteToggle.title = "Mute Audio";
-    audioMuteToggle.textContent = "Mute Audio";
-    audioConnectButton.classList.add('hidden');
+        audioConnectButton.classList.add('hidden');
+      })
+      .catch(e => console.trace(e));
   }
 
-  audioMuteToggle.onclick = function(event) {
+  micVolumeSlider.addEventListener('input', function(event) {
+    let value = micVolumeSlider.value;
+    micVolumeValue.textContent = value;
+    audioState.setMicGain(value);
+  });
+
+  /*audioMuteToggle.onclick = function(event) {
     if (audioState.localStream) {
       let audioTrack = audioState.localStream.getAudioTracks()[0];
       if (audioTrack) {
@@ -309,14 +348,14 @@ export default function setupAudio(client) {
     } else {
       console.warn("Pressed mute toggle without a local stream");
     }
-  }
+  }*/
 
   audioDisconnectButton.onclick = function(event) {
     audioState.setEnabled(false)
       .catch(e => console.trace(e));
 
     audioDisconnectButton.classList.add('hidden');
-    audioMuteToggle.classList.add('hidden');
+    micVolume.classList.add('hidden');
     audioConnectButton.classList.remove('hidden');
   }
 
