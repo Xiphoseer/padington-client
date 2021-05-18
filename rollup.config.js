@@ -1,4 +1,5 @@
 import resolve from '@rollup/plugin-node-resolve';
+import replace from '@rollup/plugin-replace';
 import commonjs from '@rollup/plugin-commonjs';
 import json from '@rollup/plugin-json';
 import { terser } from 'rollup-plugin-terser';
@@ -21,13 +22,20 @@ export default {
 		resolve({
 			preferBuiltins: false,
 		}), // tells Rollup how to find date-fns in node_modules
+		replace({
+			preventAssignment: true,
+			'process.env': JSON.stringify({
+				isProd: production,
+				host: 'padington.herokuapp.com'
+			}),
+		}),
 		commonjs(), // converts date-fns to ES modules
 		production && terser(), // minify, but only in production
 		scss(),
 		json(),
 		builtins(),
 		copy({
-  		targets: [{
+			targets: [{
 				src: 'node_modules/@fortawesome/fontawesome-free/webfonts/fa-solid-*',
 				dest: 'public/webfonts'
 			}]

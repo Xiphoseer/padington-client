@@ -16,9 +16,9 @@ let url = new URL(window.location);
 let pad_param = url.searchParams.get('pad');
 const padname = pad_param ? pad_param : "";
 const is_secure = url.protocol == "https:";
-const hostname = url.hostname;
+const host = process.env.isProd ? process.env.host : `${url.hostname}:9002`;
 
-var padington = new PadingtonClient(is_secure, hostname, padname);
+var padington = new PadingtonClient(is_secure, host, padname);
 
 setupChat(padington, padname);
 setupEditor(padington);

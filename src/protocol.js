@@ -226,9 +226,9 @@ function handleMessage(event) {
 }
 
 export class PadingtonClient {
-  constructor(is_secure, hostname, padname) {
+  constructor(is_secure, host, padname) {
     const protocol = is_secure ? 'wss:' : 'ws:';
-    const apiLocation = `${protocol}//${hostname}:9002/${padname}`;
+    const apiLocation = `${protocol}//${host}/${padname}`;
 
     console.debug("Connection to pad server at", apiLocation);
     this.socket = new WebSocket(apiLocation, "padington");
