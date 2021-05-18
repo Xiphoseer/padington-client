@@ -1,13 +1,7 @@
-const configuration = {
-  'iceServers': [
-    {'urls': 'stun:stun.l.google.com:19302'}
-  ]
-}
-
 async function initConnection(state, remoteID) {
   // The user with the larger ID initializes the connection
   console.log("Send init message to client", remoteID);
-  const peerConnection = new RTCPeerConnection(configuration);
+  const peerConnection = new RTCPeerConnection(state.iceConfig);
 
   state.localStream.getTracks().forEach(track => {
     console.log("Adding track", track);
@@ -146,7 +140,7 @@ async function handleOffer(state, remoteID, offer) {
   logSDP(offer.sdp);
   console.groupEnd();
 
-  const peerConnection = new RTCPeerConnection(configuration);
+  const peerConnection = new RTCPeerConnection(state.iceConfig);
   peerConnection.setRemoteDescription(new RTCSessionDescription(offer));
 
   state.localStream.getTracks().forEach(track => {
@@ -199,6 +193,13 @@ async function onEnable(state) {
   console.log("Creating audio context");
   const audioContext = new AudioContext();
   state.audioCtx = audioContext;
+
+  state.iceConfig = await fetch("ice-config.json").then(response => {
+    return response.json().then(cfg => {
+      console.log("ICE config", cfg);
+      return cfg;
+    });
+  });
 
   console.log("Loading user media");
   return navigator.mediaDevices.getUserMedia ({audio: true})
@@ -288,13 +289,12 @@ class AudioState {
   setEnabled(flag) {
     let v = !!flag;
     this.isEnabled = v;
-    this.client.setAudio(v);
 
-    if (v) {
-      return onEnable(this);
-    } else {
-      return onDisable(this);
-    }
+    let promise = v ? onEnable(this) : onDisable(this);
+
+    return promise.then(_ => {
+      this.client.setAudio(v);
+    });
   }
 }
 
