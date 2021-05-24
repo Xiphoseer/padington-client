@@ -1,0 +1,12 @@
+version: "3.3"
+services:
+  web:
+    build: .
+    ports:
+      - "8080:80"
+  backend:
+    image: ghcr.io/xiphoseer/padington-server:0.1-beta
+    ports:
+      - "9002:9002"
+    volumes:
+      - ./examples:/srv/padington

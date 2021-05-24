@@ -2,7 +2,18 @@
 
 This repo contains a prototype for a collaborative editing client based on [ProseMirror](https://prosemirror.net/). The repository was derived from the [rollup-starter-app](https://github.com/rollup/rollup-starter-app) template.
 
-## Getting started
+## Using Docker
+
+```bash
+git clone https://github.com/xiphoseer/padington-client
+cd padington-client
+sudo docker-compose build
+sudo docker-compose up
+```
+
+Then navigate to <http://localhost:8080/?pad=Intro>
+
+## Development
 
 Clone this repository and install its dependencies:
 
