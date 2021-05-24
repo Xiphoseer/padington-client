@@ -1,6 +1,6 @@
 import setupChat from './chat.js';
 import setupEditor from './editor.js';
-import setupAudio from './audio.js';
+//import setupAudio from './audio.js';
 import {PadingtonClient} from './protocol.js';
 
 import "prosemirror-view/style/prosemirror.css";
@@ -16,10 +16,12 @@ let url = new URL(window.location);
 let pad_param = url.searchParams.get('pad');
 const padname = pad_param ? pad_param : "";
 const is_secure = url.protocol == "https:";
-const host = process.env.isProd ? process.env.host : `${url.hostname}:9002`;
+const host = process.env.host || url.hostname;
+const port = process.env.port || 9002;
+const authority = (is_secure && port != 443 || !is_secure && port != 80) ? `${host}:${port}` : host;
 
-var padington = new PadingtonClient(is_secure, host, padname);
+var padington = new PadingtonClient(is_secure, authority, padname);
 
 setupChat(padington, padname);
 setupEditor(padington);
-window.audioState = setupAudio(padington);
+//window.audioState = setupAudio(padington);
