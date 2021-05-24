@@ -31,7 +31,7 @@ export default {
 				port: demo ? '443' : undefined,
 			}),
 		}),
-		commonjs(), // converts date-fns to ES modules
+		commonjs(), // converts prosemirror dependencies (e.g. markdown-it) to ES modules
 		production && terser(), // minify, but only in production
 		scss(),
 		json(),

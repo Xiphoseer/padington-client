@@ -1,6 +1,6 @@
 import {EditorState} from "prosemirror-state"
 import {EditorView} from "prosemirror-view"
-import {Schema, DOMParser} from "prosemirror-model"
+//import {Schema, DOMParser} from "prosemirror-model"
 import {Step} from "prosemirror-transform"
 import {schema} from "prosemirror-markdown"
 import {exampleSetup} from "prosemirror-example-setup"
