@@ -9,7 +9,8 @@ import copy from 'rollup-plugin-copy';
 
 // `npm run build` -> `production` is true
 // `npm run dev` -> `production` is false
-const production = !process.env.ROLLUP_WATCH;
+const production = !process.env.ROLLUP_WATCH
+const demo = process.env.NODE_ENV == 'demo'
 
 export default {
 	input: 'src/main.js',
@@ -26,7 +27,8 @@ export default {
 			preventAssignment: true,
 			'process.env': JSON.stringify({
 				isProd: production,
-				host: 'padington.herokuapp.com'
+				host: demo ? 'padington.herokuapp.com' : undefined,
+				port: demo ? '443' : undefined,
 			}),
 		}),
 		commonjs(), // converts date-fns to ES modules
